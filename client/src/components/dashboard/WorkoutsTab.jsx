@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Plus, ChevronDown, ChevronRight, Dumbbell, Trash2, X } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Dumbbell, Trash2, X, Search } from 'lucide-react';
+import ExerciseSearchModal from '../ExerciseSearchModal';
 
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -26,6 +28,7 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
     notes: '',
     days: [emptyDay('monday')],
   });
+  const [searchModalDay, setSearchModalDay] = useState(null);
 
   const createPlan = useMutation({
     mutationFn: (data) => api.post('/workouts', data),
@@ -173,6 +176,11 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
                       <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 mt-1">
                         {exIdx + 1}
                       </div>
+                      {ex.gifUrl && (
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
+                          <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
                       <div className="flex-1 grid grid-cols-5 gap-2">
                         <input className="input py-1 text-sm col-span-2" placeholder="Exercise name"
                           value={ex.name} onChange={e => updateExercise(dayIdx, exIdx, 'name', e.target.value)} required />
@@ -189,10 +197,17 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => addExercise(dayIdx)}
-                    className="text-brand-600 hover:text-brand-700 text-xs font-medium flex items-center gap-1">
-                    <Plus size={14} /> Add Exercise
-                  </button>
+                  <div className="flex items-center gap-3 mt-1">
+                    <button type="button" onClick={() => addExercise(dayIdx)}
+                      className="text-brand-600 hover:text-brand-700 text-xs font-medium flex items-center gap-1">
+                      <Plus size={14} /> Add Manually
+                    </button>
+                    <span className="text-gray-300 text-xs">·</span>
+                    <button type="button" onClick={() => setSearchModalDay(dayIdx)}
+                      className="text-green-600 hover:text-green-700 text-xs font-medium flex items-center gap-1">
+                      <Search size={14} /> Search ExerciseDB
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -210,6 +225,21 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
           {createPlan.isPending ? 'Creating…' : 'Create Workout Plan'}
         </button>
       </form>
+
+      {searchModalDay !== null && (
+        <ExerciseSearchModal
+          dayLabel={form.days[searchModalDay]?.dayOfWeek}
+          onSelect={(exercise) => {
+            const days = [...form.days];
+            days[searchModalDay] = {
+              ...days[searchModalDay],
+              exercises: [...days[searchModalDay].exercises, exercise],
+            };
+            setForm({ ...form, days });
+          }}
+          onClose={() => setSearchModalDay(null)}
+        />
+      )}
     </div>
   );
 }
@@ -239,16 +269,32 @@ function WorkoutDayCard({ day, engagementId, user, planId }) {
             <p className="text-sm text-gray-500">Rest and recovery day. Light stretching is encouraged.</p>
           ) : (
             <>
-              {day.exercises?.map((ex, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm">
-                  <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0">{i + 1}</div>
-                  <div>
-                    <div className="font-medium">{ex.name}</div>
-                    <div className="text-gray-500">{ex.sets} sets × {ex.reps} reps · {ex.restSeconds}s rest</div>
-                    {ex.notes && <div className="text-xs text-gray-400 mt-0.5">{ex.notes}</div>}
+              {day.exercises?.map((ex, i) => {
+                const inner = (
+                  <div className={`flex items-start gap-3 text-sm rounded-xl p-2 transition-colors ${ex.exerciseDbId ? 'hover:bg-brand-50 cursor-pointer group' : ''}`}>
+                    <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">{i + 1}</div>
+                    {ex.gifUrl && (
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                        <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium capitalize ${ex.exerciseDbId ? 'group-hover:text-brand-600' : ''}`}>{ex.name}</div>
+                      <div className="text-gray-500 text-xs">{ex.sets} sets × {ex.reps} reps · {ex.restSeconds}s rest</div>
+                      {ex.target && <div className="text-xs text-brand-500 mt-0.5 capitalize">{ex.target} · {ex.bodyPart}</div>}
+                      {ex.notes && <div className="text-xs text-gray-400 mt-0.5">{ex.notes}</div>}
+                    </div>
+                    {ex.exerciseDbId && (
+                      <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-500 shrink-0 mt-1 transition-colors" />
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+                return ex.exerciseDbId ? (
+                  <Link key={i} to={`/exercise/${ex.exerciseDbId}`}>{inner}</Link>
+                ) : (
+                  <div key={i}>{inner}</div>
+                );
+              })}
               {user.role === 'client' && (
                 <button
                   className="btn-secondary text-sm w-full mt-2"
