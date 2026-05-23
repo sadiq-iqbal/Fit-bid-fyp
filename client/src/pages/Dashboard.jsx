@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Dumbbell, Utensils, TrendingUp, Clock, CheckCircle, AlertCircle, PlusCircle } from 'lucide-react';
+import { Dumbbell, Utensils, TrendingUp, Clock, CheckCircle, AlertCircle, PlusCircle, ChevronRight, Gavel } from 'lucide-react';
 
 function ClientDashboard({ user }) {
   const { data: posts } = useQuery({ queryKey: ['my-posts'], queryFn: () => api.get('/posts/my').then(r => r.data) });
@@ -68,13 +68,25 @@ function ClientDashboard({ user }) {
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Open Requests</h2>
               <div className="space-y-3">
                 {openPosts.map(post => (
-                  <Link key={post._id} to={`/posts/${post._id}`} className="card flex items-center justify-between hover:border-brand-300 transition-colors">
-                    <div>
-                      <div className="font-semibold text-gray-900">{post.title}</div>
-                      <div className="text-sm text-gray-500">{post.bidCount} bid{post.bidCount !== 1 ? 's' : ''} received</div>
+                  <div key={post._id} className="card flex items-center justify-between hover:border-brand-300 transition-colors gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-gray-900 truncate">{post.title}</div>
+                      <div className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                        <Gavel size={13} className="text-gray-400 shrink-0" />
+                        {post.bidCount} bid{post.bidCount !== 1 ? 's' : ''} received
+                      </div>
                     </div>
-                    <span className="badge-yellow">Open</span>
-                  </Link>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="badge-yellow">Open</span>
+                      <Link
+                        to={`/posts/${post._id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 text-white text-sm font-semibold shadow-sm hover:from-brand-600 hover:to-brand-700 hover:shadow-md active:scale-95 transition-all duration-150"
+                      >
+                        Show Bids
+                        <ChevronRight size={15} />
+                      </Link>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
