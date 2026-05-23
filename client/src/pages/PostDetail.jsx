@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Star, Clock, DollarSign, CheckCircle, User, MapPin, Dumbbell } from 'lucide-react';
+import { Star, Clock, DollarSign, CheckCircle, User, MapPin, Dumbbell, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function BidForm({ postId, budgetMax, onSuccess }) {
@@ -76,6 +76,20 @@ export default function PostDetail() {
   );
 
   if (!post) return <div className="text-center py-16 text-gray-400">Loading…</div>;
+
+  // Clients can only view their own posts
+  if (user?.role === 'client' && !isOwner) {
+    return (
+      <div className="max-w-md mx-auto mt-16 card text-center py-14">
+        <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Lock size={24} className="text-red-500" />
+        </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-gray-500 text-sm mb-6">You can only view your own requests.</p>
+        <Link to="/posts" className="btn-primary">Back to My Requests</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl">

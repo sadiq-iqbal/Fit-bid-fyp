@@ -13,9 +13,14 @@ export default function Posts() {
   const [filters, setFilters] = useState({ tags: '', budgetMin: '', budgetMax: '' });
   const [search, setSearch] = useState('');
 
+  const isClient = user?.role === 'client';
+
   const { data, isLoading } = useQuery({
-    queryKey: ['posts', filters],
+    queryKey: ['posts', filters, isClient],
     queryFn: () => {
+      if (isClient) {
+        return api.get('/posts/my').then(r => r.data);
+      }
       const params = new URLSearchParams();
       if (filters.tags) params.set('tags', filters.tags);
       if (filters.budgetMin) params.set('budgetMin', filters.budgetMin);
@@ -35,7 +40,7 @@ export default function Posts() {
           <h1 className="text-2xl font-bold text-gray-900">
             {user.role === 'client' ? 'My Requests' : 'Browse Client Requests'}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">{data?.total || 0} open requests</p>
+          <p className="text-gray-500 text-sm mt-1">{isClient ? `${posts.length} request${posts.length !== 1 ? 's' : ''}` : `${data?.total || 0} open requests`}</p>
         </div>
         {user.role === 'client' && (
           <Link to="/posts/new" className="btn-primary"><PlusCircle size={16} /> New Request</Link>
@@ -49,12 +54,16 @@ export default function Posts() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input className="input pl-9" placeholder="Search by title…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <select className="input w-auto" value={filters.tags} onChange={e => setFilters({ ...filters, tags: e.target.value })}>
-            <option value="">All tags</option>
-            {ALL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <input className="input w-32" type="number" placeholder="Min budget" value={filters.budgetMin} onChange={e => setFilters({ ...filters, budgetMin: e.target.value })} />
-          <input className="input w-32" type="number" placeholder="Max budget" value={filters.budgetMax} onChange={e => setFilters({ ...filters, budgetMax: e.target.value })} />
+          {!isClient && (
+            <>
+              <select className="input w-auto" value={filters.tags} onChange={e => setFilters({ ...filters, tags: e.target.value })}>
+                <option value="">All tags</option>
+                {ALL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <input className="input w-32" type="number" placeholder="Min budget" value={filters.budgetMin} onChange={e => setFilters({ ...filters, budgetMin: e.target.value })} />
+              <input className="input w-32" type="number" placeholder="Max budget" value={filters.budgetMax} onChange={e => setFilters({ ...filters, budgetMax: e.target.value })} />
+            </>
+          )}
         </div>
       </div>
 
@@ -63,8 +72,9 @@ export default function Posts() {
       ) : posts.length === 0 ? (
         <div className="card text-center py-16">
           <Search size={40} className="text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-700 mb-1">No requests found</h3>
-          <p className="text-gray-500 text-sm">Try adjusting your filters or check back later.</p>
+          <h3 className="font-semibold text-gray-700 mb-1">{isClient ? "You haven't posted any requests yet" : 'No requests found'}</h3>
+          <p className="text-gray-500 text-sm mb-4">{isClient ? 'Post your fitness goal and start receiving bids from professionals.' : 'Try adjusting your filters or check back later.'}</p>
+          {isClient && <Link to="/posts/new" className="btn-primary inline-flex items-center gap-2"><PlusCircle size={16} /> Post a Request</Link>}
         </div>
       ) : (
         <div className="space-y-4">
