@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, PlusCircle, Users, Settings, ShieldCheck, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, FileText, PlusCircle, Users, Settings, ShieldCheck, Dumbbell, Rss } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = {
@@ -7,24 +7,28 @@ const navItems = {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/posts/new', icon: PlusCircle, label: 'Post a Request' },
     { to: '/posts', icon: FileText, label: 'My Posts' },
+    { to: '/feed', icon: Rss, label: 'Community Feed' },
     { to: '/directory', icon: Users, label: 'Find Professionals' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   trainer: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/posts', icon: FileText, label: 'Browse Requests' },
+    { to: '/feed', icon: Rss, label: 'Community Feed' },
     { to: '/directory', icon: Users, label: 'Directory' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   nutritionist: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/posts', icon: FileText, label: 'Browse Requests' },
+    { to: '/feed', icon: Rss, label: 'Community Feed' },
     { to: '/directory', icon: Users, label: 'Directory' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   admin: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin', icon: ShieldCheck, label: 'Admin Panel' },
+    { to: '/feed', icon: Rss, label: 'Community Feed' },
     { to: '/directory', icon: Users, label: 'Directory' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],

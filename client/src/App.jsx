@@ -11,6 +11,7 @@ import PostDetail from './pages/PostDetail';
 import Engagement from './pages/Engagement';
 import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
+import Feed from './pages/Feed';
 import Directory from './pages/Directory';
 import AdminPanel from './pages/AdminPanel';
 import Settings from './pages/Settings';
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
             <Route path="/posts/new" element={<ProtectedRoute roles={['client']}><PostNew /></ProtectedRoute>} />
             <Route path="/posts/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
+            <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
             <Route path="/engagements/:id" element={<ProtectedRoute><Engagement /></ProtectedRoute>} />
             <Route path="/profile/:id" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
