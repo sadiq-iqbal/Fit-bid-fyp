@@ -8,6 +8,13 @@ const exerciseSchema = new mongoose.Schema({
   videoUrl: { type: String },
   notes: { type: String },
   order: { type: Number, default: 0 },
+  exerciseDbId: { type: String },
+  gifUrl: { type: String },
+  target: { type: String },
+  bodyPart: { type: String },
+  equipment: { type: String },
+  secondaryMuscles: [{ type: String }],
+  instructions: [{ type: String }],
 });
 
 const workoutDaySchema = new mongoose.Schema({
