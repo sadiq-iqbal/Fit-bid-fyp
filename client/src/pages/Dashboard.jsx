@@ -80,10 +80,15 @@ function ClientDashboard({ user }) {
                       <span className="badge-yellow">Open</span>
                       <Link
                         to={`/posts/${post._id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 text-white text-sm font-semibold shadow-sm hover:from-brand-600 hover:to-brand-700 hover:shadow-md active:scale-95 transition-all duration-150"
+                        className="relative inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 text-white text-sm font-semibold shadow-sm hover:from-brand-600 hover:to-brand-700 hover:shadow-md active:scale-95 transition-all duration-150"
                       >
                         Show Bids
                         <ChevronRight size={15} />
+                        {post.bidCount > 0 && (
+                          <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-bold shadow-md ring-2 ring-white">
+                            {post.bidCount > 99 ? '99+' : post.bidCount}
+                          </span>
+                        )}
                       </Link>
                     </div>
                   </div>
