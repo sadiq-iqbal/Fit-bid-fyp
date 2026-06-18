@@ -51,6 +51,19 @@ router.put('/:id', protect, authorize('trainer'), async (req, res) => {
   }
 });
 
+// DELETE /api/workouts/:id — delete plan
+router.delete('/:id', protect, authorize('trainer'), async (req, res) => {
+  try {
+    const plan = await WorkoutPlan.findOneAndDelete({ _id: req.params.id, trainer: req.user._id });
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+    // Optional: Delete associated WorkoutLogs
+    await WorkoutLog.deleteMany({ workoutPlan: req.params.id });
+    res.json({ message: 'Plan deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/workouts/log — client logs a workout
 router.post('/log', protect, authorize('client'), async (req, res) => {
   try {

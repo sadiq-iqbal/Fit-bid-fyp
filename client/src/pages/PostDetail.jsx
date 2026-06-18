@@ -99,6 +99,28 @@ export default function PostDetail() {
           <span className={`badge shrink-0 ${post.status === 'open' ? 'badge-green' : post.status === 'in_progress' ? 'badge-yellow' : 'badge-gray'}`}>{post.status}</span>
         </div>
         <p className="text-gray-600 whitespace-pre-wrap mb-4">{post.description}</p>
+        
+        {post.age && (
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 flex flex-wrap gap-x-8 gap-y-3">
+            <div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">Age</div>
+              <div className="font-semibold text-gray-900">{post.age} years</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">Gender</div>
+              <div className="font-semibold text-gray-900 capitalize">{post.gender?.replace('-', ' ')}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">Height</div>
+              <div className="font-semibold text-gray-900">{post.heightCm} cm</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">Weight</div>
+              <div className="font-semibold text-gray-900">{post.weightKg} kg</div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 mb-4">
           {post.tags?.map(t => <span key={t} className="badge-blue">{t}</span>)}
           {post.needsTrainer && !trainerHired && <span className="badge-green">Trainer needed</span>}
@@ -119,7 +141,15 @@ export default function PostDetail() {
         )}
       </div>
 
-      {canBid && !showBidForm && (
+      {canBid && post.hasBidded && (
+        <div className="card mb-6 border-green-200 bg-green-50 text-center py-6">
+          <CheckCircle size={32} className="text-green-500 mx-auto mb-2" />
+          <h2 className="font-semibold text-green-900 mb-1">Bid Submitted Successfully</h2>
+          <p className="text-sm text-green-700">Your proposal is under review by the client. Good luck!</p>
+        </div>
+      )}
+
+      {canBid && !post.hasBidded && !showBidForm && (
         <div className="card mb-6 border-brand-200 bg-brand-50">
           <h2 className="font-semibold mb-1">Interested in this client?</h2>
           <p className="text-sm text-gray-600 mb-3">Submit a proposal and compete for this engagement.</p>
@@ -127,10 +157,13 @@ export default function PostDetail() {
         </div>
       )}
 
-      {canBid && showBidForm && (
+      {canBid && !post.hasBidded && showBidForm && (
         <div className="card mb-6">
           <h2 className="font-semibold mb-4">Your Bid</h2>
-          <BidForm postId={id} budgetMax={post.budgetMax} onSuccess={() => setShowBidForm(false)} />
+          <BidForm postId={id} budgetMax={post.budgetMax} onSuccess={() => {
+            setShowBidForm(false);
+            qc.invalidateQueries({ queryKey: ['post', id] });
+          }} />
         </div>
       )}
 

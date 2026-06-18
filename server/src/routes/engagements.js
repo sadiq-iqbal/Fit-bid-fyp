@@ -7,6 +7,7 @@ const WorkoutLog = require('../models/WorkoutLog');
 const MealLog = require('../models/MealLog');
 const CheckIn = require('../models/CheckIn');
 const ProgressEntry = require('../models/ProgressEntry');
+const Message = require('../models/Message');
 const { protect } = require('../middleware/auth');
 
 // GET /api/engagements — list engagements for current user
@@ -53,14 +54,15 @@ router.get('/:id', protect, async (req, res) => {
     if (!isParticipant) return res.status(403).json({ error: 'Not authorized' });
 
     // Attach summary data
-    const [workoutPlans, mealPlans, recentProgress, pendingCheckIn] = await Promise.all([
+    const [workoutPlans, mealPlans, recentProgress, pendingCheckIn, unreadMessagesCount] = await Promise.all([
       WorkoutPlan.find({ engagement: engagement._id }).sort({ weekNumber: -1 }).limit(1),
       MealPlan.find({ engagement: engagement._id }).sort({ weekNumber: -1 }).limit(1),
       ProgressEntry.find({ engagement: engagement._id }).sort({ loggedAt: -1 }).limit(1),
       CheckIn.findOne({ engagement: engagement._id, status: 'pending', client: engagement.client._id }),
+      Message.countDocuments({ engagement: engagement._id, readBy: { $ne: req.user._id } }),
     ]);
 
-    res.json({ engagement, latestWorkoutPlan: workoutPlans[0] || null, latestMealPlan: mealPlans[0] || null, recentProgress: recentProgress[0] || null, pendingCheckIn });
+    res.json({ engagement, latestWorkoutPlan: workoutPlans[0] || null, latestMealPlan: mealPlans[0] || null, recentProgress: recentProgress[0] || null, pendingCheckIn, unreadMessagesCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

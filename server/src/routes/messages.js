@@ -10,6 +10,27 @@ const isParticipant = async (engagementId, userId) => {
   return [eng.client, eng.trainer, eng.nutritionist].filter(Boolean).map(String).includes(String(userId));
 };
 
+// GET /api/messages/unread/count
+router.get('/unread/count', protect, async (req, res) => {
+  try {
+    const engagements = await Engagement.find({
+      $or: [
+        { client: req.user._id },
+        { trainer: req.user._id },
+        { nutritionist: req.user._id }
+      ]
+    });
+    const engagementIds = engagements.map(e => e._id);
+    const unreadCount = await Message.countDocuments({
+      engagement: { $in: engagementIds },
+      readBy: { $ne: req.user._id }
+    });
+    res.json({ unreadCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/messages/:engagementId
 router.get('/:engagementId', protect, async (req, res) => {
   try {

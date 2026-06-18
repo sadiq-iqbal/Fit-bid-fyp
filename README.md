@@ -1,6 +1,7 @@
 # FitBid
 
 A competitive fitness & nutrition bidding platform. Clients post their fitness goals, certified trainers and nutritionists submit bids, and a shared collaboration dashboard manages the entire engagement — workouts, meal plans, progress tracking, check-ins, and payments.
+ecomsadiq312@gmail.com
 
 ---
 

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getExerciseById, searchYouTubeVideos } from '../services/exerciseApi';
-import { ArrowLeft, Dumbbell, Target, Layers, Zap, PlayCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Dumbbell, Target, Layers, Zap, PlayCircle, Loader2, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 function MuscleTag({ label, color = 'blue' }) {
   const colors = {
@@ -20,6 +21,13 @@ function MuscleTag({ label, color = 'blue' }) {
 export default function ExerciseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showGifModal, setShowGifModal] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const handleOpenModal = () => {
+    setZoomLevel(1); // reset zoom when opening
+    setShowGifModal(true);
+  };
 
   const { data: exercise, isLoading, error } = useQuery({
     queryKey: ['exercise', id],
@@ -64,11 +72,18 @@ export default function ExerciseDetail() {
         {/* GIF */}
         <div className="card flex items-center justify-center bg-gray-50 min-h-64 p-4">
           {exercise.gifUrl ? (
-            <img
-              src={exercise.gifUrl}
-              alt={exercise.name}
-              className="max-h-72 w-auto rounded-xl object-contain"
-            />
+            <button 
+              onClick={handleOpenModal} 
+              className="relative group cursor-zoom-in rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <img
+                src={exercise.gifUrl}
+                alt={exercise.name}
+                className="max-h-72 w-auto object-contain transition-opacity group-hover:opacity-90"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 transition-colors">
+              </div>
+            </button>
           ) : (
             <Dumbbell size={64} className="text-gray-200" />
           )}
@@ -189,6 +204,45 @@ export default function ExerciseDetail() {
                 </a>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* GIF Modal */}
+      {showGifModal && exercise.gifUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowGifModal(false)}>
+          <div className="relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center flex-col" onClick={e => e.stopPropagation()}>
+            <div className="absolute -top-14 right-0 flex gap-3">
+              <button 
+                onClick={() => setZoomLevel(z => Math.min(z + 0.25, 3))}
+                className="text-white hover:text-gray-300 p-2 bg-black/40 rounded-full transition-colors"
+                title="Zoom In"
+              >
+                <ZoomIn size={24} />
+              </button>
+              <button 
+                onClick={() => setZoomLevel(z => Math.max(z - 0.25, 0.5))}
+                className="text-white hover:text-gray-300 p-2 bg-black/40 rounded-full transition-colors"
+                title="Zoom Out"
+              >
+                <ZoomOut size={24} />
+              </button>
+              <button 
+                onClick={() => setShowGifModal(false)}
+                className="text-white hover:text-gray-300 p-2 bg-black/40 rounded-full transition-colors"
+                title="Close"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="overflow-auto max-w-full max-h-[85vh] rounded-lg shadow-2xl bg-white flex items-center justify-center p-4 custom-scrollbar">
+              <img
+                src={exercise.gifUrl}
+                alt={exercise.name}
+                style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center' }}
+                className="transition-transform duration-200"
+              />
+            </div>
           </div>
         </div>
       )}

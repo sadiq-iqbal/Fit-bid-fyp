@@ -55,13 +55,19 @@ export default function Engagement() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+            className={`relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
               activeTab === key
                 ? 'text-brand-600 border-brand-600'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             <Icon size={16} /> {label}
+            {key === 'messages' && data?.unreadMessagesCount > 0 && (
+              <span className="absolute top-2 right-2 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
           </button>
         ))}
       </div>

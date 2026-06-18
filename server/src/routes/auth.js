@@ -39,7 +39,7 @@ router.post(
 
       res.status(201).json({
         token: generateToken(user._id, user.role),
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+        user: { _id: user._id, id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -66,7 +66,7 @@ router.post(
 
       res.json({
         token: generateToken(user._id, user.role),
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, isVerified: user.isVerified },
+        user: { _id: user._id, id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, isVerified: user.isVerified },
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

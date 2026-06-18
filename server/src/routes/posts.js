@@ -23,6 +23,14 @@ router.get('/', protect, async (req, res) => {
     if (needsTrainer === 'true') filter.needsTrainer = true;
     if (needsNutritionist === 'true') filter.needsNutritionist = true;
 
+    if (req.user.role === 'trainer' || req.user.role === 'nutritionist') {
+      const myBids = await Bid.find({ professional: req.user._id }).select('post');
+      const biddedPostIds = myBids.map(b => b.post);
+      if (biddedPostIds.length > 0) {
+        filter._id = { $nin: biddedPostIds };
+      }
+    }
+
     const posts = await Post.find(filter)
       .populate('client', 'name avatar')
       .sort({ createdAt: -1 })
@@ -49,8 +57,14 @@ router.get('/my', protect, authorize('client'), async (req, res) => {
 // GET /api/posts/:id
 router.get('/:id', protect, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate('client', 'name avatar createdAt');
+    const post = await Post.findById(req.params.id).populate('client', 'name avatar createdAt').lean();
     if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    if (req.user.role === 'trainer' || req.user.role === 'nutritionist') {
+      const bid = await Bid.findOne({ post: req.params.id, professional: req.user._id });
+      post.hasBidded = !!bid;
+    }
+
     res.json({ post });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -67,6 +81,10 @@ router.post(
     body('description').notEmpty(),
     body('budgetMin').isNumeric(),
     body('budgetMax').isNumeric(),
+    body('age').isNumeric(),
+    body('gender').isIn(['male', 'female', 'non-binary', 'prefer-not-to-say']),
+    body('heightCm').isNumeric(),
+    body('weightKg').isNumeric(),
     body('durationWeeks').isNumeric(),
     body('trainingLocation').optional().isIn(['home', 'gym', 'any']),
     body('equipmentAvailable').optional().isString(),

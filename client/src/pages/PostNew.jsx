@@ -11,7 +11,7 @@ export default function PostNew() {
   const [form, setForm] = useState({
     title: '', description: '', tags: [], needsTrainer: true, needsNutritionist: false,
     budgetMin: '', budgetMax: '', durationWeeks: '', visibility: 'public', deadline: '',
-    trainingLocation: 'any', equipmentAvailable: '',
+    trainingLocation: 'any', equipmentAvailable: '', age: '', gender: 'male', heightCm: '', weightKg: '',
   });
 
   const { mutate, isPending } = useMutation({
@@ -33,7 +33,7 @@ export default function PostNew() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.needsTrainer && !form.needsNutritionist) { toast.error('Select at least one professional type'); return; }
-    mutate({ ...form, budgetMin: Number(form.budgetMin), budgetMax: Number(form.budgetMax), durationWeeks: Number(form.durationWeeks) });
+    mutate({ ...form, budgetMin: Number(form.budgetMin), budgetMax: Number(form.budgetMax), durationWeeks: Number(form.durationWeeks), age: Number(form.age), heightCm: Number(form.heightCm), weightKg: Number(form.weightKg) });
   };
 
   return (
@@ -74,6 +74,35 @@ export default function PostNew() {
                 <span className="font-medium">{label}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        <div className="card space-y-4">
+          <h2 className="font-semibold">Client Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Age</label>
+              <input className="input" type="number" min="1" placeholder="e.g. 30" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Gender</label>
+              <select className="input" value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="non-binary">Non-binary</option>
+                <option value="prefer-not-to-say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Height (cm)</label>
+              <input className="input" type="number" min="1" placeholder="e.g. 175" value={form.heightCm} onChange={e => setForm({ ...form, heightCm: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Weight (kg)</label>
+              <input className="input" type="number" min="1" placeholder="e.g. 70" value={form.weightKg} onChange={e => setForm({ ...form, weightKg: e.target.value })} required />
+            </div>
           </div>
         </div>
 

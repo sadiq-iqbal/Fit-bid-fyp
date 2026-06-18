@@ -19,9 +19,10 @@ const emptyDay = (dayOfWeek) => ({
   notes: '',
 });
 
-function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
+function WorkoutForm({ engagementId, nextWeek, initialData, onClose }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
+  const isEditing = !!initialData;
+  const [form, setForm] = useState(initialData || {
     weekNumber: nextWeek,
     title: '',
     difficultyLevel: 'beginner',
@@ -30,14 +31,14 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
   });
   const [searchModalDay, setSearchModalDay] = useState(null);
 
-  const createPlan = useMutation({
-    mutationFn: (data) => api.post('/workouts', data),
+  const mutation = useMutation({
+    mutationFn: (data) => isEditing ? api.put(`/workouts/${initialData._id}`, data) : api.post('/workouts', data),
     onSuccess: () => {
-      toast.success('Workout plan created!');
+      toast.success(isEditing ? 'Workout plan updated!' : 'Workout plan created!');
       qc.invalidateQueries({ queryKey: ['workouts', engagementId] });
       onClose();
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'Failed to create workout plan'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to save workout plan'),
   });
 
   const addDay = () => {
@@ -95,7 +96,7 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
         }
       }
     }
-    createPlan.mutate({
+    mutation.mutate({
       engagementId,
       weekNumber: Number(form.weekNumber),
       title: form.title,
@@ -113,7 +114,7 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
   return (
     <div className="card border-brand-200 bg-brand-50/30">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">Create Workout Plan</h3>
+        <h3 className="font-semibold text-lg">{isEditing ? 'Edit Workout Plan' : 'Create Workout Plan'}</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
       </div>
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -221,8 +222,8 @@ function CreateWorkoutForm({ engagementId, nextWeek, onClose }) {
             value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
         </div>
 
-        <button type="submit" className="btn-primary w-full" disabled={createPlan.isPending}>
-          {createPlan.isPending ? 'Creating…' : 'Create Workout Plan'}
+        <button type="submit" className="btn-primary w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? (isEditing ? 'Updating…' : 'Creating…') : (isEditing ? 'Update Workout Plan' : 'Create Workout Plan')}
         </button>
       </form>
 
@@ -316,10 +317,21 @@ export default function WorkoutsTab({ engagementId, engagement, user }) {
   const qc = useQueryClient();
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['workouts', engagementId],
     queryFn: () => api.get(`/workouts/engagement/${engagementId}`).then(r => r.data),
+  });
+
+  const deletePlan = useMutation({
+    mutationFn: (planId) => api.delete(`/workouts/${planId}`),
+    onSuccess: () => {
+      toast.success('Workout plan deleted');
+      qc.invalidateQueries({ queryKey: ['workouts', engagementId] });
+      setSelectedWeek(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to delete plan'),
   });
 
   const plans = data?.plans || [];
@@ -332,7 +344,7 @@ export default function WorkoutsTab({ engagementId, engagement, user }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Workout Plans</h2>
-        {isTrainer && !showCreateForm && (
+        {isTrainer && !showCreateForm && !editingPlan && (
           <button className="btn-primary text-sm" onClick={() => setShowCreateForm(true)}>
             <Plus size={16} className="inline mr-1" /> New Plan
           </button>
@@ -341,7 +353,13 @@ export default function WorkoutsTab({ engagementId, engagement, user }) {
 
       {showCreateForm && isTrainer && (
         <div className="mb-6">
-          <CreateWorkoutForm engagementId={engagementId} nextWeek={nextWeek} onClose={() => setShowCreateForm(false)} />
+          <WorkoutForm engagementId={engagementId} nextWeek={nextWeek} onClose={() => setShowCreateForm(false)} />
+        </div>
+      )}
+
+      {editingPlan && isTrainer && (
+        <div className="mb-6">
+          <WorkoutForm engagementId={engagementId} nextWeek={nextWeek} initialData={editingPlan} onClose={() => setEditingPlan(null)} />
         </div>
       )}
 
@@ -365,9 +383,26 @@ export default function WorkoutsTab({ engagementId, engagement, user }) {
           </div>
           {activePlan && (
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <h3 className="font-semibold">Week {activePlan.weekNumber}: {activePlan.title}</h3>
-                <span className="badge-blue text-xs capitalize">{activePlan.difficultyLevel}</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Week {activePlan.weekNumber}: {activePlan.title}</h3>
+                  <span className="badge-blue text-xs capitalize">{activePlan.difficultyLevel}</span>
+                  <div className="text-xs text-gray-400 ml-2">
+                    {activePlan.createdAt !== activePlan.updatedAt ? 
+                      `Updated ${new Date(activePlan.updatedAt).toLocaleDateString()}` : 
+                      `Created ${new Date(activePlan.createdAt).toLocaleDateString()}`}
+                  </div>
+                </div>
+                {isTrainer && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setEditingPlan(activePlan)} className="text-brand-600 hover:text-brand-800 text-sm font-medium">Edit</button>
+                    <button onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this workout plan?')) {
+                        deletePlan.mutate(activePlan._id);
+                      }
+                    }} className="text-red-500 hover:text-red-700 text-sm font-medium ml-2">Delete</button>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 {activePlan.days?.map((day, i) => (

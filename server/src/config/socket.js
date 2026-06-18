@@ -27,7 +27,7 @@ module.exports = (io) => {
     // Send message
     socket.on('send_message', async (data) => {
       try {
-        const { engagementId, content, recipientIds, attachmentUrl } = data;
+        const { engagementId, content, recipientIds, attachmentUrl, tempId } = data;
         const message = await Message.create({
           engagement: engagementId,
           sender: socket.userId,
@@ -37,7 +37,10 @@ module.exports = (io) => {
           readBy: [socket.userId],
         });
         await message.populate('sender', 'name avatar role');
-        io.to(`engagement:${engagementId}`).emit('new_message', message);
+        // Convert to plain object and attach tempId so client can replace optimistic message
+        const msgObj = message.toObject();
+        msgObj.tempId = tempId || null;
+        io.to(`engagement:${engagementId}`).emit('new_message', msgObj);
       } catch (err) {
         socket.emit('error', { message: err.message });
       }
