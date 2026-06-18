@@ -11,9 +11,26 @@ const connectDB = require('./config/db');
 const app = express();
 const server = http.createServer(app);
 
+// Support multiple allowed origins via comma-separated CLIENT_URL
+// e.g. CLIENT_URL=https://fitbid.vercel.app,http://localhost:5000
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, mobile apps)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+};
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -44,10 +61,11 @@ const bidLimiter = rateLimit({
 });
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
+
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

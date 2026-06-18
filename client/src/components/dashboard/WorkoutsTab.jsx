@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Plus, ChevronDown, ChevronRight, Dumbbell, Trash2, X, Search } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Dumbbell, Trash2, X, Search, Check, Info } from 'lucide-react';
 import ExerciseSearchModal from '../ExerciseSearchModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -112,25 +113,27 @@ function WorkoutForm({ engagementId, nextWeek, initialData, onClose }) {
   const usedDays = form.days.map(d => d.dayOfWeek);
 
   return (
-    <div className="card border-brand-200 bg-brand-50/30">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">{isEditing ? 'Edit Workout Plan' : 'Create Workout Plan'}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+    <div className="card relative overflow-hidden border-brand-200/80 bg-brand-50/20 p-6 md:p-8">
+      <div className="absolute inset-0 bg-mesh opacity-5 pointer-events-none" />
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <h3 className="font-black text-gray-950 text-xl tracking-tight">{isEditing ? 'Edit Workout Plan' : 'Create Workout Plan'}</h3>
+        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-5">
+
+      <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
         {/* Top-level fields */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="label">Week Number</label>
-            <input className="input" type="number" min="1" value={form.weekNumber} onChange={e => setForm({ ...form, weekNumber: e.target.value })} required />
+            <input className="input bg-white" type="number" min="1" value={form.weekNumber} onChange={e => setForm({ ...form, weekNumber: e.target.value })} required />
           </div>
           <div>
             <label className="label">Title</label>
-            <input className="input" placeholder="e.g. Foundation Week" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+            <input className="input bg-white" placeholder="e.g. Foundation Week" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
           </div>
           <div>
             <label className="label">Difficulty</label>
-            <select className="input" value={form.difficultyLevel} onChange={e => setForm({ ...form, difficultyLevel: e.target.value })}>
+            <select className="input bg-white" value={form.difficultyLevel} onChange={e => setForm({ ...form, difficultyLevel: e.target.value })}>
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
               <option value="advanced">Advanced</option>
@@ -140,89 +143,94 @@ function WorkoutForm({ engagementId, nextWeek, initialData, onClose }) {
 
         {/* Days */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm text-gray-700">Training Days</h4>
-            <button type="button" onClick={addDay} disabled={usedDays.length >= 7} className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
+          <div className="flex items-center justify-between border-b border-gray-200/50 pb-2">
+            <h4 className="font-bold text-sm text-gray-800 tracking-tight">Training Days</h4>
+            <button type="button" onClick={addDay} disabled={usedDays.length >= 7} className="btn-secondary py-1 px-3 text-xs flex items-center gap-1">
               <Plus size={14} /> Add Day
             </button>
           </div>
 
-          {form.days.map((day, dayIdx) => (
-            <div key={dayIdx} className="border border-gray-200 rounded-lg bg-white">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-                <select className="input w-auto py-1 text-sm font-medium" value={day.dayOfWeek}
-                  onChange={e => updateDay(dayIdx, 'dayOfWeek', e.target.value)}>
-                  {DAYS_OF_WEEK.filter(d => d === day.dayOfWeek || !usedDays.includes(d)).map(d => (
-                    <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input type="checkbox" checked={day.isRestDay} onChange={e => updateDay(dayIdx, 'isRestDay', e.target.checked)}
-                    className="rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
-                  Rest Day
-                </label>
-                {!day.isRestDay && (
-                  <input className="input py-1 text-sm flex-1" placeholder="Focus area (e.g. Upper Body)"
-                    value={day.focusArea} onChange={e => updateDay(dayIdx, 'focusArea', e.target.value)} />
-                )}
-                <button type="button" onClick={() => removeDay(dayIdx)} className="text-red-400 hover:text-red-600 shrink-0">
-                  <Trash2 size={16} />
-                </button>
-              </div>
+          <div className="space-y-3">
+            {form.days.map((day, dayIdx) => (
+              <div key={dayIdx} className="border border-surface-200 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-gray-100">
+                  <select className="input bg-white w-auto py-1 text-sm font-bold text-gray-900 border-gray-200" value={day.dayOfWeek}
+                    onChange={e => updateDay(dayIdx, 'dayOfWeek', e.target.value)}>
+                    {DAYS_OF_WEEK.filter(d => d === day.dayOfWeek || !usedDays.includes(d)).map(d => (
+                      <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                    ))}
+                  </select>
 
-              {!day.isRestDay && (
-                <div className="px-4 py-3 space-y-3">
-                  {day.exercises.map((ex, exIdx) => (
-                    <div key={exIdx} className="flex items-start gap-2">
-                      <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 mt-1">
-                        {exIdx + 1}
-                      </div>
-                      {ex.gifUrl && (
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
-                          <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-600 cursor-pointer">
+                    <input type="checkbox" checked={day.isRestDay} onChange={e => updateDay(dayIdx, 'isRestDay', e.target.checked)}
+                      className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 w-4 h-4 cursor-pointer" />
+                    Rest Day
+                  </label>
+
+                  {!day.isRestDay && (
+                    <input className="input bg-white py-1 text-sm flex-1 min-w-[150px]" placeholder="Focus area (e.g. Upper Body)"
+                      value={day.focusArea} onChange={e => updateDay(dayIdx, 'focusArea', e.target.value)} />
+                  )}
+
+                  <button type="button" onClick={() => removeDay(dayIdx)} className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors ml-auto">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                {!day.isRestDay && (
+                  <div className="p-4 space-y-3">
+                    {day.exercises.map((ex, exIdx) => (
+                      <div key={exIdx} className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2 border-b sm:border-b-0 border-gray-100 pb-3 sm:pb-0">
+                        <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 sm:mt-2.5">
+                          {exIdx + 1}
                         </div>
-                      )}
-                      <div className="flex-1 grid grid-cols-5 gap-2">
-                        <input className="input py-1 text-sm col-span-2" placeholder="Exercise name"
-                          value={ex.name} onChange={e => updateExercise(dayIdx, exIdx, 'name', e.target.value)} required />
-                        <input className="input py-1 text-sm" type="number" min="1" placeholder="Sets"
-                          value={ex.sets} onChange={e => updateExercise(dayIdx, exIdx, 'sets', e.target.value)} />
-                        <input className="input py-1 text-sm" placeholder="Reps (e.g. 10)"
-                          value={ex.reps} onChange={e => updateExercise(dayIdx, exIdx, 'reps', e.target.value)} />
-                        <input className="input py-1 text-sm" type="number" min="0" placeholder="Rest (s)"
-                          value={ex.restSeconds} onChange={e => updateExercise(dayIdx, exIdx, 'restSeconds', e.target.value)} />
+                        {ex.gifUrl && (
+                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-200 sm:mt-1 self-start">
+                            <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-2">
+                          <input className="input bg-white py-1.5 text-sm sm:col-span-2" placeholder="Exercise name"
+                            value={ex.name} onChange={e => updateExercise(dayIdx, exIdx, 'name', e.target.value)} required />
+                          <input className="input bg-white py-1.5 text-sm" type="number" min="1" placeholder="Sets"
+                            value={ex.sets} onChange={e => updateExercise(dayIdx, exIdx, 'sets', e.target.value)} />
+                          <input className="input bg-white py-1.5 text-sm" placeholder="Reps (e.g. 10)"
+                            value={ex.reps} onChange={e => updateExercise(dayIdx, exIdx, 'reps', e.target.value)} />
+                          <input className="input bg-white py-1.5 text-sm" type="number" min="0" placeholder="Rest (s)"
+                            value={ex.restSeconds} onChange={e => updateExercise(dayIdx, exIdx, 'restSeconds', e.target.value)} />
+                        </div>
+                        <button type="button" onClick={() => removeExercise(dayIdx, exIdx)}
+                          className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 sm:mt-1.5 self-end sm:self-start">
+                          <X size={14} />
+                        </button>
                       </div>
-                      <button type="button" onClick={() => removeExercise(dayIdx, exIdx)}
-                        className="text-red-400 hover:text-red-600 shrink-0 mt-1">
-                        <X size={14} />
+                    ))}
+                    <div className="flex items-center gap-3 pt-2 border-t border-gray-100 mt-2">
+                      <button type="button" onClick={() => addExercise(dayIdx)}
+                        className="text-brand-600 hover:text-brand-700 text-xs font-bold flex items-center gap-1 transition-colors">
+                        <Plus size={14} /> Add Manually
+                      </button>
+                      <span className="text-gray-300 text-xs">•</span>
+                      <button type="button" onClick={() => setSearchModalDay(dayIdx)}
+                        className="text-emerald-600 hover:text-emerald-700 text-xs font-bold flex items-center gap-1 transition-colors">
+                        <Search size={14} /> Search ExerciseDB
                       </button>
                     </div>
-                  ))}
-                  <div className="flex items-center gap-3 mt-1">
-                    <button type="button" onClick={() => addExercise(dayIdx)}
-                      className="text-brand-600 hover:text-brand-700 text-xs font-medium flex items-center gap-1">
-                      <Plus size={14} /> Add Manually
-                    </button>
-                    <span className="text-gray-300 text-xs">·</span>
-                    <button type="button" onClick={() => setSearchModalDay(dayIdx)}
-                      className="text-green-600 hover:text-green-700 text-xs font-medium flex items-center gap-1">
-                      <Search size={14} /> Search ExerciseDB
-                    </button>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Notes */}
         <div>
           <label className="label">Notes for Client (optional)</label>
-          <textarea className="input resize-none" rows={2} placeholder="General guidance, reminders, tips…"
+          <textarea className="input bg-white resize-none" rows={3} placeholder="General guidance, reminders, tips…"
             value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
         </div>
 
-        <button type="submit" className="btn-primary w-full" disabled={mutation.isPending}>
+        <button type="submit" className="btn-primary w-full py-3 text-base shadow-glow-sm" disabled={mutation.isPending}>
           {mutation.isPending ? (isEditing ? 'Updating…' : 'Creating…') : (isEditing ? 'Update Workout Plan' : 'Create Workout Plan')}
         </button>
       </form>
@@ -256,59 +264,92 @@ function WorkoutDayCard({ day, engagementId, user, planId }) {
   });
 
   return (
-    <div className="border border-gray-100 rounded-lg overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+    <div className="border border-gray-200/80 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 bg-gray-50/30 hover:bg-gray-50 transition-colors text-left">
         <div>
-          <span className="font-medium capitalize">{day.dayOfWeek}</span>
-          {day.isRestDay ? <span className="ml-2 badge-gray text-xs">Rest Day</span> : <span className="ml-2 text-sm text-gray-500">{day.focusArea}</span>}
-        </div>
-        {open ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
-      </button>
-      {open && (
-        <div className="px-4 py-3 space-y-3">
+          <span className="font-extrabold text-gray-900 capitalize">{day.dayOfWeek}</span>
           {day.isRestDay ? (
-            <p className="text-sm text-gray-500">Rest and recovery day. Light stretching is encouraged.</p>
+            <span className="ml-3 badge badge-gray font-bold text-xs">Rest Day</span>
           ) : (
-            <>
-              {day.exercises?.map((ex, i) => {
-                const inner = (
-                  <div className={`flex items-start gap-3 text-sm rounded-xl p-2 transition-colors ${ex.exerciseDbId ? 'hover:bg-brand-50 cursor-pointer group' : ''}`}>
-                    <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">{i + 1}</div>
-                    {ex.gifUrl && (
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                        <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium capitalize ${ex.exerciseDbId ? 'group-hover:text-brand-600' : ''}`}>{ex.name}</div>
-                      <div className="text-gray-500 text-xs">{ex.sets} sets × {ex.reps} reps · {ex.restSeconds}s rest</div>
-                      {ex.target && <div className="text-xs text-brand-500 mt-0.5 capitalize">{ex.target} · {ex.bodyPart}</div>}
-                      {ex.notes && <div className="text-xs text-gray-400 mt-0.5">{ex.notes}</div>}
-                    </div>
-                    {ex.exerciseDbId && (
-                      <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-500 shrink-0 mt-1 transition-colors" />
-                    )}
-                  </div>
-                );
-                return ex.exerciseDbId ? (
-                  <Link key={i} to={`/exercise/${ex.exerciseDbId}`}>{inner}</Link>
-                ) : (
-                  <div key={i}>{inner}</div>
-                );
-              })}
-              {user.role === 'client' && (
-                <button
-                  className="btn-secondary text-sm w-full mt-2"
-                  onClick={() => logWorkout.mutate({ engagementId, workoutPlanId: planId, dayId: day._id, notes: '', rating: 4 })}
-                  disabled={logWorkout.isPending}
-                >
-                  Mark as Complete
-                </button>
-              )}
-            </>
+            <span className="ml-3 badge badge-brand font-bold text-xs">{day.focusArea || 'Workout'}</span>
           )}
         </div>
-      )}
+        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-400 hover:text-gray-600 border border-gray-100 shadow-sm shrink-0">
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden bg-white"
+          >
+            <div className="px-5 py-4 space-y-4 border-t border-gray-100">
+              {day.isRestDay ? (
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">Rest and recovery day. Light stretching, hydration, and active recovery are encouraged.</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {day.exercises?.map((ex, i) => {
+                      const inner = (
+                        <div className={`flex items-start gap-4 text-sm rounded-xl p-3 border border-transparent transition-all ${ex.exerciseDbId ? 'hover:bg-brand-50/40 hover:border-brand-100 cursor-pointer group' : ''}`}>
+                          <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">{i + 1}</div>
+                          {ex.gifUrl && (
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                              <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className={`font-bold text-gray-900 capitalize leading-snug group-hover:text-brand-600 transition-colors ${ex.exerciseDbId ? 'group-hover:text-brand-600' : ''}`}>{ex.name}</div>
+                            <div className="text-gray-500 text-xs font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                              <span>{ex.sets} sets × {ex.reps} reps</span>
+                              <span className="text-gray-300">•</span>
+                              <span>{ex.restSeconds}s rest</span>
+                              {ex.target && (
+                                <>
+                                  <span className="text-gray-300">•</span>
+                                  <span className="text-brand-600 capitalize">{ex.target}</span>
+                                  <span className="text-gray-300">•</span>
+                                  <span className="text-gray-400 capitalize">{ex.bodyPart}</span>
+                                </>
+                              )}
+                            </div>
+                            {ex.notes && <div className="text-xs text-gray-400 mt-2 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100 font-medium">{ex.notes}</div>}
+                          </div>
+                          {ex.exerciseDbId && (
+                            <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-500 shrink-0 mt-1 transition-colors self-center" />
+                          )}
+                        </div>
+                      );
+
+                      return ex.exerciseDbId ? (
+                        <Link key={i} to={`/exercise/${ex.exerciseDbId}`} className="block">{inner}</Link>
+                      ) : (
+                        <div key={i}>{inner}</div>
+                      );
+                    })}
+                  </div>
+
+                  {user.role === 'client' && (
+                    <button
+                      className="btn-primary text-sm w-full mt-3 shadow-sm py-2.5 flex items-center justify-center gap-1.5"
+                      onClick={() => logWorkout.mutate({ engagementId, workoutPlanId: planId, dayId: day._id, notes: '', rating: 4 })}
+                      disabled={logWorkout.isPending}
+                    >
+                      <Check size={16} />
+                      {logWorkout.isPending ? 'Logging...' : 'Mark Day as Completed'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -341,75 +382,107 @@ export default function WorkoutsTab({ engagementId, engagement, user }) {
   const isTrainer = user._id === engagement.trainer?._id || user._id === engagement.trainer;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Workout Plans</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-black text-gray-950 tracking-tight flex items-center gap-2">
+          <Dumbbell size={20} className="text-brand-600" />
+          Workout Plans
+        </h2>
         {isTrainer && !showCreateForm && !editingPlan && (
-          <button className="btn-primary text-sm" onClick={() => setShowCreateForm(true)}>
-            <Plus size={16} className="inline mr-1" /> New Plan
+          <button className="btn-primary py-2 px-4 text-sm shadow-glow-sm flex items-center gap-1.5" onClick={() => setShowCreateForm(true)}>
+            <Plus size={16} /> New Plan
           </button>
         )}
       </div>
 
       {showCreateForm && isTrainer && (
-        <div className="mb-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <WorkoutForm engagementId={engagementId} nextWeek={nextWeek} onClose={() => setShowCreateForm(false)} />
-        </div>
+        </motion.div>
       )}
 
       {editingPlan && isTrainer && (
-        <div className="mb-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <WorkoutForm engagementId={engagementId} nextWeek={nextWeek} initialData={editingPlan} onClose={() => setEditingPlan(null)} />
-        </div>
+        </motion.div>
       )}
 
       {isLoading ? (
-        <div className="text-center py-10 text-gray-400">Loading…</div>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="w-10 h-10 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin mb-3" />
+          <p className="text-gray-400 font-medium text-sm">Loading plans...</p>
+        </div>
       ) : plans.length === 0 && !showCreateForm ? (
-        <div className="card text-center py-12">
-          <Dumbbell size={40} className="text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-700 mb-1">No workout plan yet</h3>
-          <p className="text-sm text-gray-500">{isTrainer ? 'Click "New Plan" above to create the first workout plan for this client.' : 'Your trainer hasn\'t assigned a workout plan yet. Check back soon!'}</p>
+        <div className="card text-center py-16 border-dashed border-2 border-brand-100 max-w-lg mx-auto">
+          <div className="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Dumbbell size={24} className="text-brand-500" />
+          </div>
+          <h3 className="font-bold text-gray-950 text-base mb-1">No workout plan assigned</h3>
+          <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-xs mx-auto">
+            {isTrainer 
+              ? 'Create a custom workout plan by clicking "New Plan" at the top right.' 
+              : 'Your trainer hasn\'t assigned a workout plan yet. Check back soon!'}
+          </p>
         </div>
       ) : (
         <>
-          <div className="flex gap-2 mb-4 flex-wrap">
+          <div className="flex gap-2 pb-1 overflow-x-auto no-scrollbar scroll-smooth">
             {plans.map(p => (
               <button key={p._id} onClick={() => setSelectedWeek(p.weekNumber)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${activePlan?.weekNumber === p.weekNumber ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-200 text-gray-600 hover:border-brand-400'}`}>
+                className={`px-4 py-2 rounded-full text-xs font-bold border transition-all shrink-0 ${
+                  activePlan?.weekNumber === p.weekNumber 
+                    ? 'bg-brand-600 text-white border-brand-600 shadow-glow-sm scale-105' 
+                    : 'border-gray-200 text-gray-500 bg-white hover:border-brand-400 hover:text-brand-600'
+                }`}>
                 Week {p.weekNumber}
               </button>
             ))}
           </div>
+
           {activePlan && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">Week {activePlan.weekNumber}: {activePlan.title}</h3>
-                  <span className="badge-blue text-xs capitalize">{activePlan.difficultyLevel}</span>
-                  <div className="text-xs text-gray-400 ml-2">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50/50 p-4 border border-gray-100 rounded-2xl">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="font-bold text-gray-950 text-base">Week {activePlan.weekNumber}: {activePlan.title || 'Workout'}</h3>
+                  <span className="badge badge-blue text-xs uppercase tracking-wide font-black">{activePlan.difficultyLevel}</span>
+                  <div className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
                     {activePlan.createdAt !== activePlan.updatedAt ? 
                       `Updated ${new Date(activePlan.updatedAt).toLocaleDateString()}` : 
                       `Created ${new Date(activePlan.createdAt).toLocaleDateString()}`}
                   </div>
                 </div>
                 {isTrainer && (
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingPlan(activePlan)} className="text-brand-600 hover:text-brand-800 text-sm font-medium">Edit</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setEditingPlan(activePlan)} className="text-brand-600 hover:text-brand-800 text-sm font-bold transition-colors">Edit</button>
+                    <span className="text-gray-300">|</span>
                     <button onClick={() => {
                       if (window.confirm('Are you sure you want to delete this workout plan?')) {
                         deletePlan.mutate(activePlan._id);
                       }
-                    }} className="text-red-500 hover:text-red-700 text-sm font-medium ml-2">Delete</button>
+                    }} className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors">Delete</button>
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-3">
                 {activePlan.days?.map((day, i) => (
                   <WorkoutDayCard key={i} day={day} engagementId={engagementId} user={user} planId={activePlan._id} />
                 ))}
               </div>
-              {activePlan.notes && <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700"><span className="font-medium">Trainer notes: </span>{activePlan.notes}</div>}
+
+              {activePlan.notes && (
+                <div className="border border-brand-100 bg-brand-50/40 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center shrink-0 text-brand-600">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-brand-900 text-sm mb-1">Trainer's Notes</h4>
+                    <p className="text-xs text-brand-700 font-medium leading-relaxed">
+                      {activePlan.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

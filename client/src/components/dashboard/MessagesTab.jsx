@@ -66,7 +66,14 @@ export default function MessagesTab({ engagementId, user }) {
 
   useEffect(() => {
     const token = localStorage.getItem('fitbid_token');
-    socket = io({ auth: { token }, transports: ['websocket'] });
+    // In production, connect directly to the backend server URL.
+    // VITE_SOCKET_URL can be set explicitly, or derived from VITE_API_URL.
+    // In dev, Vite's proxy handles socket.io, so we use '' (relative).
+    const socketUrl = import.meta.env.VITE_SOCKET_URL ||
+      (import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+        : '');
+    socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
 
     socket.on('connect', () => {
       setConnected(true);
@@ -215,15 +222,15 @@ export default function MessagesTab({ engagementId, user }) {
                   <div
                     className={`px-4 py-2.5 text-sm leading-relaxed break-words shadow-sm ${
                       mine
-                        ? 'bg-blue-600 text-white rounded-2xl rounded-br-none'
-                        : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-none'
+                        ? 'bg-brand-600 text-white rounded-3xl rounded-br-none'
+                        : 'bg-gray-100 text-gray-900 rounded-3xl rounded-bl-none'
                     } ${msg._isOptimistic ? 'opacity-70' : 'opacity-100'}`}
                   >
                     {msg.content}
                   </div>
 
                   {/* Time */}
-                  <span className="text-[10px] text-gray-400 mt-1 px-1">
+                  <span className="text-[10px] text-gray-400 mt-1 px-1 font-semibold">
                     {formatTime(msg.createdAt)}
                     {msg._isOptimistic && <span className="ml-1">· Sending…</span>}
                   </span>
@@ -236,11 +243,15 @@ export default function MessagesTab({ engagementId, user }) {
         {/* Typing indicator */}
         {typing && (
           <div className="flex items-end gap-2 mt-4">
-            <div className="w-8 h-8 rounded-full bg-gray-300 shrink-0" />
-            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 shrink-0">
+              <div className="flex gap-0.5">
+                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" />
+                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+            <div className="bg-gray-100 rounded-3xl rounded-bl-sm px-4 py-3 flex gap-1 items-center text-xs text-gray-500 font-medium">
+              Typing...
             </div>
           </div>
         )}
@@ -256,7 +267,7 @@ export default function MessagesTab({ engagementId, user }) {
           </div>
           <input
             ref={inputRef}
-            className="flex-1 bg-white text-sm outline-none px-4 py-2.5 rounded-full border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 placeholder-gray-400 transition-all"
+            className="flex-1 bg-white text-sm outline-none px-4 py-2.5 rounded-full border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 placeholder-gray-400 transition-all font-semibold"
             placeholder="Type a message…"
             value={message}
             onChange={handleTyping}
@@ -265,7 +276,7 @@ export default function MessagesTab({ engagementId, user }) {
           <button
             type="submit"
             disabled={!message.trim() || !connected}
-            className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-sm"
           >
             <Send size={15} />
           </button>

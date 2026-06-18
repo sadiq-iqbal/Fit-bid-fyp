@@ -3,7 +3,37 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Dumbbell, Utensils, TrendingUp, Clock, CheckCircle, AlertCircle, PlusCircle, ChevronRight, Gavel } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  Dumbbell, Utensils, TrendingUp, Clock, CheckCircle,
+  AlertCircle, PlusCircle, ChevronRight, Gavel, Star,
+  Activity, Users, BarChart2, ShieldCheck
+} from 'lucide-react';
+import PageTransition from '../components/common/PageTransition';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } }
+};
+
+function StatCard({ icon: Icon, value, label, colorClass, bgClass }) {
+  return (
+    <motion.div variants={cardVariants} className="card flex items-center gap-4 p-5">
+      <div className={`w-12 h-12 ${bgClass} rounded-2xl flex items-center justify-center shrink-0`}>
+        <Icon size={22} className={colorClass} />
+      </div>
+      <div>
+        <div className="text-2xl font-black text-gray-950">{value}</div>
+        <div className="text-sm text-gray-500 font-medium">{label}</div>
+      </div>
+    </motion.div>
+  );
+}
 
 function ClientDashboard({ user }) {
   const { data: posts } = useQuery({ queryKey: ['my-posts'], queryFn: () => api.get('/posts/my').then(r => r.data) });
@@ -11,67 +41,88 @@ function ClientDashboard({ user }) {
 
   const activeEngagements = engs?.engagements?.filter(e => e.status === 'active') || [];
   const openPosts = posts?.posts?.filter(p => p.status === 'open' || p.status === 'in_progress') || [];
+  const completedPosts = posts?.posts?.filter(p => p.status === 'completed') || [];
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h1>
-        <p className="text-gray-500 mt-1">Here's what's happening with your fitness journey.</p>
+    <PageTransition>
+      {/* Greeting Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 rounded-3xl p-8 mb-8 shadow-glow-md">
+        <div className="absolute inset-0 bg-mesh opacity-10 pointer-events-none" />
+        <div className="relative z-10">
+          <p className="text-brand-100 text-sm font-semibold mb-1">Welcome back 👋</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">{user.name.split(' ')[0]}</h1>
+          <p className="text-brand-100/80 mt-1 font-medium">Track your fitness journey and manage your requests below.</p>
+          <Link to="/posts/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-brand-700 rounded-xl font-bold text-sm hover:bg-brand-50 transition-colors shadow-md">
+            <PlusCircle size={16} /> Post New Request
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center"><CheckCircle className="text-green-600" size={22} /></div>
-          <div><div className="text-2xl font-bold">{activeEngagements.length}</div><div className="text-sm text-gray-500">Active engagements</div></div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"><Clock className="text-blue-600" size={22} /></div>
-          <div><div className="text-2xl font-bold">{openPosts.length}</div><div className="text-sm text-gray-500">Open requests</div></div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center"><TrendingUp className="text-purple-600" size={22} /></div>
-          <div><div className="text-2xl font-bold">{posts?.posts?.filter(p => p.status === 'completed').length || 0}</div><div className="text-sm text-gray-500">Completed</div></div>
-        </div>
-      </div>
+      {/* Stats Row */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
+      >
+        <StatCard icon={CheckCircle} value={activeEngagements.length} label="Active Engagements" colorClass="text-green-600" bgClass="bg-green-50" />
+        <StatCard icon={Clock} value={openPosts.length} label="Open Requests" colorClass="text-blue-600" bgClass="bg-blue-50" />
+        <StatCard icon={TrendingUp} value={completedPosts.length} label="Completed" colorClass="text-purple-600" bgClass="bg-purple-50" />
+      </motion.div>
 
       {activeEngagements.length === 0 && openPosts.length === 0 ? (
-        <div className="card text-center py-16">
-          <Dumbbell size={48} className="text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Ready to start your journey?</h2>
-          <p className="text-gray-500 mb-6">Post your fitness goal and receive bids from certified professionals.</p>
-          <Link to="/posts/new" className="btn-primary">Post your first request</Link>
-        </div>
+        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+          className="card text-center py-20 border-dashed border-2 border-brand-100"
+        >
+          <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <Dumbbell size={30} className="text-brand-400" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Ready to start your journey?</h2>
+          <p className="text-gray-500 mb-6 font-medium text-sm max-w-sm mx-auto">Post your fitness goal and receive tailored bids from certified professionals.</p>
+          <Link to="/posts/new" className="btn-primary shadow-glow-sm">Post your first request</Link>
+        </motion.div>
       ) : (
-        <div>
+        <div className="space-y-8">
           {activeEngagements.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Active Engagements</h2>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Active Engagements
+              </h2>
               <div className="space-y-3">
                 {activeEngagements.map(eng => (
-                  <Link key={eng._id} to={`/engagements/${eng._id}`} className="card flex items-center justify-between hover:border-brand-300 transition-colors group">
+                  <Link key={eng._id} to={`/engagements/${eng._id}`}
+                    className="card flex items-center justify-between hover:border-brand-300 hover:shadow-card-hover transition-all group"
+                  >
                     <div>
-                      <div className="font-semibold text-gray-900">{eng.post?.title || 'Engagement'}</div>
-                      <div className="text-sm text-gray-500 mt-0.5">
+                      <div className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{eng.post?.title || 'Engagement'}</div>
+                      <div className="text-sm text-gray-500 mt-0.5 font-medium">
                         {eng.trainer && `Trainer: ${eng.trainer.name}`}
                         {eng.trainer && eng.nutritionist && ' · '}
                         {eng.nutritionist && `Nutritionist: ${eng.nutritionist.name}`}
                       </div>
                     </div>
-                    <span className="badge-green">Active</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="badge-green">Active</span>
+                      <ChevronRight size={16} className="text-gray-400 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+                    </div>
                   </Link>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
           {openPosts.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Open Requests</h2>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                Open Requests
+              </h2>
               <div className="space-y-3">
                 {openPosts.map(post => (
-                  <div key={post._id} className="card flex items-center justify-between hover:border-brand-300 transition-colors gap-4">
+                  <div key={post._id} className="card flex items-center justify-between hover:border-brand-300 hover:shadow-card-hover transition-all gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-gray-900 truncate">{post.title}</div>
-                      <div className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                      <div className="font-bold text-gray-900 truncate">{post.title}</div>
+                      <div className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5 font-medium">
                         <Gavel size={13} className="text-gray-400 shrink-0" />
                         {post.bidCount} bid{post.bidCount !== 1 ? 's' : ''} received
                       </div>
@@ -80,7 +131,7 @@ function ClientDashboard({ user }) {
                       <span className="badge-yellow">Open</span>
                       <Link
                         to={`/posts/${post._id}`}
-                        className="relative inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 text-white text-sm font-semibold shadow-sm hover:from-brand-600 hover:to-brand-700 hover:shadow-md active:scale-95 transition-all duration-150"
+                        className="relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-white text-sm font-bold shadow-sm hover:from-brand-600 hover:to-brand-700 hover:shadow-glow-sm active:scale-95 transition-all duration-150"
                       >
                         Show Bids
                         <ChevronRight size={15} />
@@ -94,103 +145,114 @@ function ClientDashboard({ user }) {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       )}
-    </div>
+    </PageTransition>
   );
 }
 
 function ProfessionalDashboard({ user }) {
   const { data: bids } = useQuery({ queryKey: ['my-bids'], queryFn: () => api.get('/bids/my').then(r => r.data) });
   const { data: engs } = useQuery({ queryKey: ['engagements'], queryFn: () => api.get('/engagements').then(r => r.data) });
-
   const [activeTab, setActiveTab] = useState('active');
 
   const activeEngagements = engs?.engagements?.filter(e => e.status === 'active') || [];
   const pendingBids = bids?.bids?.filter(b => b.status === 'pending') || [];
-  const acceptedBids = bids?.bids?.filter(b => b.status === 'accepted') || [];
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h1>
-        <p className="text-gray-500 mt-1">
-          {user.isVerified ? 'Your account is verified ✓' : <span className="text-yellow-600">Your account is pending verification.</span>}
-        </p>
+    <PageTransition>
+      {/* Greeting Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-700 via-brand-600 to-teal-600 rounded-3xl p-8 mb-8 shadow-glow-md">
+        <div className="absolute inset-0 bg-mesh opacity-10 pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-brand-100 text-sm font-semibold mb-1">Professional Dashboard 👋</p>
+            <h1 className="text-3xl font-black text-white tracking-tight">{user.name.split(' ')[0]}</h1>
+            <p className="text-brand-100/80 mt-1 font-medium capitalize">
+              {user.role}
+              {user.isVerified
+                ? <span className="ml-2 inline-flex items-center gap-1 text-xs text-green-200 font-bold"><CheckCircle size={12} /> Verified</span>
+                : <span className="ml-2 inline-flex items-center gap-1 text-xs text-yellow-200 font-bold"><AlertCircle size={12} /> Pending verification</span>
+              }
+            </p>
+          </div>
+          <Link to="/posts" className="shrink-0 mt-1 inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl font-semibold text-sm hover:bg-white/30 transition-colors border border-white/20">
+            Browse Requests <ChevronRight size={15} />
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center"><CheckCircle className="text-green-600" size={22} /></div>
-          <div><div className="text-2xl font-bold">{activeEngagements.length}</div><div className="text-sm text-gray-500">Active clients</div></div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center"><Clock className="text-yellow-600" size={22} /></div>
-          <div><div className="text-2xl font-bold">{pendingBids.length}</div><div className="text-sm text-gray-500">Pending bids</div></div>
-        </div>
-      </div>
-      <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
-        <button 
-          onClick={() => setActiveTab('active')} 
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-        >
-          Active Clients ({activeEngagements.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('pending')} 
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'pending' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-        >
-          Pending Bids ({pendingBids.length})
-        </button>
+      {/* Stats */}
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <StatCard icon={Users} value={activeEngagements.length} label="Active Clients" colorClass="text-green-600" bgClass="bg-green-50" />
+        <StatCard icon={Clock} value={pendingBids.length} label="Pending Bids" colorClass="text-yellow-600" bgClass="bg-yellow-50" />
+      </motion.div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 p-1 bg-gray-100/80 rounded-xl w-fit">
+        {[['active', `Active Clients (${activeEngagements.length})`], ['pending', `Pending Bids (${pendingBids.length})`]].map(([tab, label]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+              activeTab === tab ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'pending' && (
         pendingBids.length > 0 ? (
-          <div className="mb-6">
-            <div className="space-y-3">
-              {pendingBids.map(bid => (
-                <Link key={bid._id} to={`/posts/${bid.post._id}`} className="card flex items-center justify-between hover:border-brand-300 transition-colors">
-                  <div>
-                    <div className="font-semibold text-gray-900">{bid.post.title}</div>
-                    <div className="text-sm text-gray-500">{bid.price}$ – {bid.proposal.slice(0, 50)}...</div>
-                  </div>
-                  <span className="badge-yellow">Pending</span>
-                </Link>
-              ))}
-            </div>
+          <div className="space-y-3">
+            {pendingBids.map(bid => (
+              <Link key={bid._id} to={`/posts/${bid.post._id}`} className="card flex items-center justify-between hover:border-brand-300 hover:shadow-card-hover transition-all group">
+                <div>
+                  <div className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{bid.post.title}</div>
+                  <div className="text-sm text-gray-500 font-medium">${bid.price}/mo — {bid.proposal.slice(0, 60)}…</div>
+                </div>
+                <span className="badge-yellow shrink-0">Pending</span>
+              </Link>
+            ))}
           </div>
         ) : (
-          <div className="card text-center py-10 text-gray-500 text-sm">No pending bids.</div>
+          <div className="card text-center py-14 border-dashed border-2 border-gray-100 text-gray-500 font-medium">
+            No pending bids. <Link to="/posts" className="text-brand-600 font-bold">Browse requests →</Link>
+          </div>
         )
       )}
 
       {activeTab === 'active' && (
         activeEngagements.length > 0 ? (
-          <div className="mb-6">
-            <div className="space-y-3">
-              {activeEngagements.map(eng => (
-                <Link key={eng._id} to={`/engagements/${eng._id}`} className="card flex items-center justify-between hover:border-brand-300 transition-colors">
-                  <div>
-                    <div className="font-semibold">{eng.client?.name}</div>
-                    <div className="text-sm text-gray-500">{eng.post?.title}</div>
-                  </div>
+          <div className="space-y-3">
+            {activeEngagements.map(eng => (
+              <Link key={eng._id} to={`/engagements/${eng._id}`} className="card flex items-center justify-between hover:border-brand-300 hover:shadow-card-hover transition-all group">
+                <div>
+                  <div className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{eng.client?.name}</div>
+                  <div className="text-sm text-gray-500 font-medium">{eng.post?.title}</div>
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="badge-green">Active</span>
-                </Link>
-              ))}
-            </div>
+                  <ChevronRight size={16} className="text-gray-400 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </Link>
+            ))}
           </div>
         ) : (
-          <div className="card text-center py-12">
-            <Dumbbell size={40} className="text-gray-300 mx-auto mb-3" />
-            <h2 className="font-semibold text-gray-700 mb-2">No active clients yet</h2>
-            <p className="text-gray-500 text-sm mb-4">Browse client requests and start submitting bids.</p>
-            <Link to="/posts" className="btn-primary">Browse requests</Link>
+          <div className="card text-center py-16 border-dashed border-2 border-gray-100">
+            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Dumbbell size={28} className="text-gray-300" />
+            </div>
+            <h2 className="font-bold text-gray-700 mb-2">No active clients yet</h2>
+            <p className="text-gray-500 text-sm mb-4 font-medium">Browse client requests and start submitting proposals.</p>
+            <Link to="/posts" className="btn-primary shadow-glow-sm">Browse Requests</Link>
           </div>
         )
       )}
-    </div>
+    </PageTransition>
   );
 }
 
@@ -198,25 +260,25 @@ function AdminDashboard() {
   const { data } = useQuery({ queryKey: ['admin-dashboard'], queryFn: () => api.get('/admin/dashboard').then(r => r.data) });
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <PageTransition>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-gray-950 tracking-tight">Admin Dashboard</h1>
+          <p className="text-gray-500 text-sm font-medium mt-1">Platform overview and management controls.</p>
+        </div>
+        <Link to="/admin" className="btn-primary shadow-glow-sm"><ShieldCheck size={16} /> Admin Panel</Link>
+      </div>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Users', value: data?.totalUsers },
-          { label: 'Engagements', value: data?.totalEngagements },
-          { label: 'Open Posts', value: data?.totalPosts },
-          { label: 'Pending Verifications', value: data?.pendingVerifications, alert: true },
-        ].map(({ label, value, alert }) => (
-          <div key={label} className={`card ${alert && value > 0 ? 'border-yellow-300' : ''}`}>
-            <div className="text-2xl font-bold text-gray-900">{value ?? '…'}</div>
-            <div className="text-sm text-gray-500">{label}</div>
-          </div>
+          { label: 'Total Users', value: data?.totalUsers, icon: Users, colorClass: 'text-blue-600', bgClass: 'bg-blue-50' },
+          { label: 'Engagements', value: data?.totalEngagements, icon: Activity, colorClass: 'text-green-600', bgClass: 'bg-green-50' },
+          { label: 'Open Posts', value: data?.totalPosts, icon: BarChart2, colorClass: 'text-purple-600', bgClass: 'bg-purple-50' },
+          { label: 'Pending Verifications', value: data?.pendingVerifications, icon: ShieldCheck, colorClass: 'text-yellow-600', bgClass: 'bg-yellow-50', alert: true },
+        ].map(({ label, value, icon, colorClass, bgClass, alert }) => (
+          <StatCard key={label} icon={icon} value={value ?? '…'} label={label} colorClass={colorClass} bgClass={bgClass} />
         ))}
-      </div>
-      <div className="mt-6">
-        <Link to="/admin" className="btn-primary">Go to Admin Panel</Link>
-      </div>
-    </div>
+      </motion.div>
+    </PageTransition>
   );
 }
 
