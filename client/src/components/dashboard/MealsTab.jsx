@@ -15,84 +15,204 @@ const MEAL_COLORS = {
   snack: { border: 'border-l-4 border-l-purple-500 border-gray-200/80', bg: 'bg-purple-50/10 hover:bg-purple-50/20', badge: 'bg-purple-100 text-purple-800' }
 };
 
-const emptyItem = () => ({ name: '', portionSize: '', calories: '', notes: '' });
 
-const emptyMeal = (dayOfWeek, mealType) => ({
-  dayOfWeek,
-  mealType,
-  items: [emptyItem()],
-  totalCalories: 0,
-  notes: '',
+const emptyItem = () => ({ name: '', portionSize: '', calories: '' });
+
+const emptyDayMeals = () => ({
+  breakfast: { items: [emptyItem()], notes: '' },
+  lunch: { items: [emptyItem()], notes: '' },
+  dinner: { items: [emptyItem()], notes: '' },
+  snack: { items: [emptyItem()], notes: '' }
 });
 
-function CreateMealPlanForm({ engagementId, nextWeek, onClose }) {
+const emptyDay = (dayOfWeek) => ({
+  dayOfWeek,
+  meals: emptyDayMeals()
+});
+
+const mapPlanToForm = (plan) => {
+  const daysMap = {};
+  
+  plan.meals.forEach(m => {
+    if (!daysMap[m.dayOfWeek]) {
+      daysMap[m.dayOfWeek] = {
+        dayOfWeek: m.dayOfWeek,
+        meals: {
+          breakfast: { items: [], notes: '' },
+          lunch: { items: [], notes: '' },
+          dinner: { items: [], notes: '' },
+          snack: { items: [], notes: '' }
+        }
+      };
+    }
+    daysMap[m.dayOfWeek].meals[m.mealType] = {
+      items: m.items.map(it => ({
+        name: it.name || '',
+        portionSize: it.portionSize || '',
+        calories: it.calories !== undefined ? String(it.calories) : ''
+      })),
+      notes: m.notes || ''
+    };
+  });
+  
+  Object.values(daysMap).forEach(d => {
+    MEAL_TYPES.forEach(t => {
+      if (!d.meals[t].items || d.meals[t].items.length === 0) {
+        d.meals[t].items = [emptyItem()];
+      }
+    });
+  });
+  
+  const days = Object.values(daysMap).sort((a, b) => {
+    return DAYS_OF_WEEK.indexOf(a.dayOfWeek) - DAYS_OF_WEEK.indexOf(b.dayOfWeek);
+  });
+  
+  return {
+    weekNumber: plan.weekNumber,
+    dailyCalories: plan.dailyCalories !== undefined ? String(plan.dailyCalories) : '',
+    proteinG: plan.proteinG !== undefined ? String(plan.proteinG) : '',
+    carbsG: plan.carbsG !== undefined ? String(plan.carbsG) : '',
+    fatsG: plan.fatsG !== undefined ? String(plan.fatsG) : '',
+    fiberG: plan.fiberG !== undefined ? String(plan.fiberG) : '',
+    allergyFlags: plan.allergyFlags ? plan.allergyFlags.join(', ') : '',
+    notes: plan.notes || '',
+    days: days.length > 0 ? days : [emptyDay('monday')]
+  };
+};
+
+function CreateMealPlanForm({ engagementId, plans, nextWeek, initialData, onClose }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    weekNumber: nextWeek,
-    dailyCalories: '',
-    proteinG: '',
-    carbsG: '',
-    fatsG: '',
-    fiberG: '',
-    allergyFlags: '',
-    notes: '',
-    meals: [emptyMeal('monday', 'breakfast')],
+  const isEditing = !!initialData;
+
+  const [form, setForm] = useState(() => {
+    if (isEditing && initialData) {
+      return mapPlanToForm(initialData);
+    }
+    return {
+      weekNumber: nextWeek,
+      dailyCalories: '',
+      proteinG: '',
+      carbsG: '',
+      fatsG: '',
+      fiberG: '',
+      allergyFlags: '',
+      notes: '',
+      days: [emptyDay('monday')],
+    };
   });
 
-  const createPlan = useMutation({
-    mutationFn: (data) => api.post('/meals', data),
+  const mutation = useMutation({
+    mutationFn: (data) => isEditing ? api.put(`/meals/${initialData._id}`, data) : api.post('/meals', data),
     onSuccess: () => {
-      toast.success('Meal plan created!');
+      toast.success(isEditing ? 'Meal plan updated!' : 'Meal plan created!');
       qc.invalidateQueries({ queryKey: ['meals', engagementId] });
       onClose();
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'Failed to create meal plan'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to save meal plan'),
   });
 
-  const addMeal = () => {
-    setForm({ ...form, meals: [...form.meals, emptyMeal('monday', 'breakfast')] });
+  const addDay = () => {
+    const usedDays = form.days.map(d => d.dayOfWeek);
+    const nextDay = DAYS_OF_WEEK.find(d => !usedDays.includes(d));
+    if (!nextDay) return toast.error('All days already added');
+    setForm({ ...form, days: [...form.days, emptyDay(nextDay)] });
   };
 
-  const removeMeal = (idx) => {
-    setForm({ ...form, meals: form.meals.filter((_, i) => i !== idx) });
+  const removeDay = (idx) => {
+    setForm({ ...form, days: form.days.filter((_, i) => i !== idx) });
   };
 
-  const updateMeal = (idx, field, value) => {
-    const meals = [...form.meals];
-    meals[idx] = { ...meals[idx], [field]: value };
-    setForm({ ...form, meals });
+  const updateDayOfWeek = (idx, dayOfWeek) => {
+    const days = [...form.days];
+    days[idx] = { ...days[idx], dayOfWeek };
+    setForm({ ...form, days });
   };
 
-  const addItem = (mealIdx) => {
-    const meals = [...form.meals];
-    meals[mealIdx] = { ...meals[mealIdx], items: [...meals[mealIdx].items, emptyItem()] };
-    setForm({ ...form, meals });
+  const addItem = (dayIdx, mealType) => {
+    const days = [...form.days];
+    const day = { ...days[dayIdx] };
+    const meals = { ...day.meals };
+    const meal = { ...meals[mealType] };
+    meal.items = [...meal.items, emptyItem()];
+    meals[mealType] = meal;
+    day.meals = meals;
+    days[dayIdx] = day;
+    setForm({ ...form, days });
   };
 
-  const removeItem = (mealIdx, itemIdx) => {
-    const meals = [...form.meals];
-    meals[mealIdx] = { ...meals[mealIdx], items: meals[mealIdx].items.filter((_, i) => i !== itemIdx) };
-    setForm({ ...form, meals });
+  const removeItem = (dayIdx, mealType, itemIdx) => {
+    const days = [...form.days];
+    const day = { ...days[dayIdx] };
+    const meals = { ...day.meals };
+    const meal = { ...meals[mealType] };
+    meal.items = meal.items.filter((_, i) => i !== itemIdx);
+    if (meal.items.length === 0) {
+      meal.items = [emptyItem()];
+    }
+    meals[mealType] = meal;
+    day.meals = meals;
+    days[dayIdx] = day;
+    setForm({ ...form, days });
   };
 
-  const updateItem = (mealIdx, itemIdx, field, value) => {
-    const meals = [...form.meals];
-    const items = [...meals[mealIdx].items];
+  const updateItem = (dayIdx, mealType, itemIdx, field, value) => {
+    const days = [...form.days];
+    const day = { ...days[dayIdx] };
+    const meals = { ...day.meals };
+    const meal = { ...meals[mealType] };
+    const items = [...meal.items];
     items[itemIdx] = { ...items[itemIdx], [field]: value };
-    meals[mealIdx] = { ...meals[mealIdx], items };
-    setForm({ ...form, meals });
+    meal.items = items;
+    meals[mealType] = meal;
+    day.meals = meals;
+    days[dayIdx] = day;
+    setForm({ ...form, days });
+  };
+
+  const updateMealNotes = (dayIdx, mealType, value) => {
+    const days = [...form.days];
+    const day = { ...days[dayIdx] };
+    const meals = { ...day.meals };
+    meals[mealType] = { ...meals[mealType], notes: value };
+    day.meals = meals;
+    days[dayIdx] = day;
+    setForm({ ...form, days });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.meals.length === 0) return toast.error('Add at least one meal');
-    for (const meal of form.meals) {
-      if (meal.items.length === 0) return toast.error('Each meal needs at least one item');
-      for (const item of meal.items) {
-        if (!item.name.trim()) return toast.error('All food items must have a name');
+    if (form.days.length === 0) return toast.error('Add at least one day');
+
+    const meals = [];
+    let hasAtLeastOneMeal = false;
+
+    for (const d of form.days) {
+      for (const t of MEAL_TYPES) {
+        const mealData = d.meals[t];
+        const filledItems = mealData.items.filter(it => it.name.trim());
+
+        if (filledItems.length > 0) {
+          hasAtLeastOneMeal = true;
+          meals.push({
+            dayOfWeek: d.dayOfWeek,
+            mealType: t,
+            items: filledItems.map(it => ({
+              name: it.name.trim(),
+              portionSize: it.portionSize.trim(),
+              calories: Number(it.calories) || 0,
+            })),
+            totalCalories: filledItems.reduce((sum, it) => sum + (Number(it.calories) || 0), 0),
+            notes: mealData.notes.trim() || undefined,
+          });
+        }
       }
     }
-    createPlan.mutate({
+
+    if (!hasAtLeastOneMeal) {
+      return toast.error('Please add at least one food item to any meal');
+    }
+
+    mutation.mutate({
       engagementId,
       weekNumber: Number(form.weekNumber),
       dailyCalories: Number(form.dailyCalories) || undefined,
@@ -101,20 +221,27 @@ function CreateMealPlanForm({ engagementId, nextWeek, onClose }) {
       fatsG: Number(form.fatsG) || undefined,
       fiberG: Number(form.fiberG) || undefined,
       allergyFlags: form.allergyFlags ? form.allergyFlags.split(',').map(s => s.trim()).filter(Boolean) : [],
-      meals: form.meals.map(m => ({
-        ...m,
-        totalCalories: m.items.reduce((sum, it) => sum + (Number(it.calories) || 0), 0),
-        items: m.items.map(it => ({ ...it, calories: Number(it.calories) || 0 })),
-      })),
+      meals,
       notes: form.notes,
     });
   };
+
+  const assignedWeeks = plans.map(p => p.weekNumber);
+  const maxWeek = Math.max(12, ...assignedWeeks, nextWeek) + 2;
+  const weekOptions = [];
+  for (let i = 1; i <= maxWeek; i++) {
+    if (!assignedWeeks.includes(i) || (isEditing && i === initialData.weekNumber)) {
+      weekOptions.push(i);
+    }
+  }
+
+  const usedDays = form.days.map(d => d.dayOfWeek);
 
   return (
     <div className="card relative overflow-hidden border-brand-200/80 bg-brand-50/20 p-6 md:p-8">
       <div className="absolute inset-0 bg-mesh opacity-5 pointer-events-none" />
       <div className="flex items-center justify-between mb-6 relative z-10">
-        <h3 className="font-black text-gray-950 text-xl tracking-tight">Create Meal Plan</h3>
+        <h3 className="font-black text-gray-950 text-xl tracking-tight">{isEditing ? 'Edit Meal Plan' : 'Create Meal Plan'}</h3>
         <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
       </div>
 
@@ -123,7 +250,11 @@ function CreateMealPlanForm({ engagementId, nextWeek, onClose }) {
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           <div>
             <label className="label">Week #</label>
-            <input className="input bg-white" type="number" min="1" value={form.weekNumber} onChange={e => setForm({ ...form, weekNumber: e.target.value })} required />
+            <select className="input bg-white" value={form.weekNumber} onChange={e => setForm({ ...form, weekNumber: e.target.value })} required>
+              {weekOptions.map(w => (
+                <option key={w} value={w}>Week {w}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="label">Calories</label>
@@ -152,60 +283,99 @@ function CreateMealPlanForm({ engagementId, nextWeek, onClose }) {
           <input className="input bg-white" placeholder="e.g. gluten, dairy, nuts" value={form.allergyFlags} onChange={e => setForm({ ...form, allergyFlags: e.target.value })} />
         </div>
 
-        {/* Meals */}
+        {/* Days & Meals */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-gray-200/50 pb-2">
-            <h4 className="font-bold text-sm text-gray-800 tracking-tight">Meals List</h4>
-            <button type="button" onClick={addMeal} className="btn-secondary py-1 px-3 text-xs flex items-center gap-1">
-              <Plus size={14} /> Add Meal
+            <h4 className="font-bold text-sm text-gray-800 tracking-tight">Days & Meals</h4>
+            <button type="button" onClick={addDay} disabled={usedDays.length >= 7} className="btn-secondary py-1 px-3 text-xs flex items-center gap-1">
+              <Plus size={14} /> Add Day
             </button>
           </div>
 
-          <div className="space-y-3">
-            {form.meals.map((meal, mealIdx) => (
-              <div key={mealIdx} className="border border-surface-200 bg-white rounded-2xl overflow-hidden shadow-sm">
+          <div className="space-y-4">
+            {form.days.map((day, dayIdx) => (
+              <div key={dayIdx} className="border border-surface-200 bg-white rounded-2xl overflow-hidden shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-gray-100">
-                  <select className="input bg-white w-auto py-1 text-sm font-bold text-gray-900 border-gray-200" value={meal.dayOfWeek}
-                    onChange={e => updateMeal(mealIdx, 'dayOfWeek', e.target.value)}>
-                    {DAYS_OF_WEEK.map(d => (
+                  <select className="input bg-white w-auto py-1 text-sm font-bold text-gray-900 border-gray-200" value={day.dayOfWeek}
+                    onChange={e => updateDayOfWeek(dayIdx, e.target.value)}>
+                    {DAYS_OF_WEEK.filter(d => d === day.dayOfWeek || !usedDays.includes(d)).map(d => (
                       <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
                     ))}
                   </select>
 
-                  <select className="input bg-white w-auto py-1 text-sm font-bold text-gray-900 border-gray-200 capitalize" value={meal.mealType}
-                    onChange={e => updateMeal(mealIdx, 'mealType', e.target.value)}>
-                    {MEAL_TYPES.map(t => (
-                      <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                    ))}
-                  </select>
-
-                  <input className="input bg-white py-1 text-sm flex-1 min-w-[150px]" placeholder="Meal notes (optional)"
-                    value={meal.notes} onChange={e => updateMeal(mealIdx, 'notes', e.target.value)} />
-
-                  <button type="button" onClick={() => removeMeal(mealIdx)} className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors ml-auto">
+                  <button type="button" onClick={() => removeDay(dayIdx)} className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors ml-auto">
                     <Trash2 size={16} />
                   </button>
                 </div>
 
-                <div className="p-4 space-y-3">
-                  {meal.items.map((item, itemIdx) => (
-                    <div key={itemIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-b sm:border-b-0 border-gray-100 pb-3 sm:pb-0">
-                      <input className="input bg-white py-1.5 text-sm flex-[2]" placeholder="Food item name"
-                        value={item.name} onChange={e => updateItem(mealIdx, itemIdx, 'name', e.target.value)} required />
-                      <input className="input bg-white py-1.5 text-sm flex-1" placeholder="Portion (e.g. 200g)"
-                        value={item.portionSize} onChange={e => updateItem(mealIdx, itemIdx, 'portionSize', e.target.value)} />
-                      <input className="input bg-white py-1.5 text-sm w-24" type="number" placeholder="Calories"
-                        value={item.calories} onChange={e => updateItem(mealIdx, itemIdx, 'calories', e.target.value)} />
-                      <button type="button" onClick={() => removeItem(mealIdx, itemIdx)}
-                        className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 self-end sm:self-auto">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => addItem(mealIdx)}
-                    className="text-brand-600 hover:text-brand-700 text-xs font-bold flex items-center gap-1 transition-colors mt-2">
-                    <Plus size={14} /> Add Food Item
-                  </button>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4 bg-gray-50/20">
+                  {MEAL_TYPES.map(mealType => {
+                    const mealData = day.meals[mealType];
+                    return (
+                      <div key={mealType} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <h5 className="text-xs font-black capitalize text-gray-800 mb-3 pb-1.5 border-b border-gray-100 flex items-center gap-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-full ${
+                              mealType === 'breakfast' ? 'bg-amber-500' :
+                              mealType === 'lunch' ? 'bg-green-500' :
+                              mealType === 'dinner' ? 'bg-blue-500' : 'bg-purple-500'
+                            }`} />
+                            {mealType}
+                          </h5>
+
+                          <div className="space-y-2">
+                            {mealData.items.map((item, itemIdx) => (
+                              <div key={itemIdx} className="flex items-center gap-1.5">
+                                <input 
+                                  className="input bg-white py-1.5 text-xs flex-[2] border-gray-200 focus:border-brand-500 focus:ring-0" 
+                                  placeholder="Food item name"
+                                  value={item.name} 
+                                  onChange={e => updateItem(dayIdx, mealType, itemIdx, 'name', e.target.value)} 
+                                />
+                                <input 
+                                  className="input bg-white py-1.5 text-xs flex-1 border-gray-200 focus:border-brand-500 focus:ring-0" 
+                                  placeholder="Portion"
+                                  value={item.portionSize} 
+                                  onChange={e => updateItem(dayIdx, mealType, itemIdx, 'portionSize', e.target.value)} 
+                                />
+                                <input 
+                                  className="input bg-white py-1.5 text-xs w-16 border-gray-200 focus:border-brand-500 focus:ring-0" 
+                                  type="number"
+                                  placeholder="kcal"
+                                  value={item.calories} 
+                                  onChange={e => updateItem(dayIdx, mealType, itemIdx, 'calories', e.target.value)} 
+                                />
+                                <button 
+                                  type="button" 
+                                  onClick={() => removeItem(dayIdx, mealType, itemIdx)}
+                                  className="w-6 h-6 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+
+                            <button 
+                              type="button" 
+                              onClick={() => addItem(dayIdx, mealType)}
+                              className="text-brand-600 hover:text-brand-700 text-[11px] font-bold flex items-center gap-1 transition-colors mt-2"
+                            >
+                              <Plus size={12} /> Add Food Item
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-2 border-t border-gray-50">
+                          <input 
+                            className="input bg-gray-50/40 py-1 text-[11px] w-full border-dashed" 
+                            placeholder="Meal note (optional)" 
+                            value={mealData.notes} 
+                            onChange={e => updateMealNotes(dayIdx, mealType, e.target.value)} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -219,8 +389,8 @@ function CreateMealPlanForm({ engagementId, nextWeek, onClose }) {
             value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
         </div>
 
-        <button type="submit" className="btn-primary w-full py-3 text-base shadow-glow-sm" disabled={createPlan.isPending}>
-          {createPlan.isPending ? 'Creating…' : 'Create Meal Plan'}
+        <button type="submit" className="btn-primary w-full py-3 text-base shadow-glow-sm" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Saving…' : (isEditing ? 'Update Meal Plan' : 'Create Meal Plan')}
         </button>
       </form>
     </div>
@@ -231,6 +401,7 @@ export default function MealsTab({ engagementId, engagement, user }) {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedDay, setSelectedDay] = useState('monday');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['meals', engagementId],
@@ -251,7 +422,7 @@ export default function MealsTab({ engagementId, engagement, user }) {
           <Utensils size={20} className="text-brand-600" />
           Meal Plans
         </h2>
-        {isNutritionist && !showCreateForm && (
+        {isNutritionist && !showCreateForm && !editingPlan && (
           <button className="btn-primary py-2 px-4 text-sm shadow-glow-sm flex items-center gap-1.5" onClick={() => setShowCreateForm(true)}>
             <Plus size={16} /> New Plan
           </button>
@@ -260,7 +431,13 @@ export default function MealsTab({ engagementId, engagement, user }) {
 
       {showCreateForm && isNutritionist && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <CreateMealPlanForm engagementId={engagementId} nextWeek={nextWeek} onClose={() => setShowCreateForm(false)} />
+          <CreateMealPlanForm engagementId={engagementId} plans={plans} nextWeek={nextWeek} onClose={() => setShowCreateForm(false)} />
+        </motion.div>
+      )}
+
+      {editingPlan && isNutritionist && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <CreateMealPlanForm engagementId={engagementId} plans={plans} nextWeek={nextWeek} initialData={editingPlan} onClose={() => setEditingPlan(null)} />
         </motion.div>
       )}
 
@@ -299,6 +476,23 @@ export default function MealsTab({ engagementId, engagement, user }) {
 
           {activePlan && (
             <div className="space-y-6">
+              {/* Header with Edit Action */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50/50 p-4 border border-gray-100 rounded-2xl">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="font-bold text-gray-950 text-base">Week {activePlan.weekNumber} Meal Plan</h3>
+                  <div className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
+                    {activePlan.createdAt !== activePlan.updatedAt ? 
+                      `Updated ${new Date(activePlan.updatedAt).toLocaleDateString()}` : 
+                      `Created ${new Date(activePlan.createdAt).toLocaleDateString()}`}
+                  </div>
+                </div>
+                {isNutritionist && (
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setEditingPlan(activePlan)} className="text-brand-600 hover:text-brand-800 text-sm font-bold transition-colors">Edit Plan</button>
+                  </div>
+                )}
+              </div>
+
               {/* Daily Targets Card */}
               <div className="card relative overflow-hidden">
                 <div className="absolute inset-0 bg-mesh opacity-[0.02] pointer-events-none" />

@@ -45,6 +45,12 @@ router.put('/:id', protect, authorize('nutritionist'), async (req, res) => {
   try {
     const plan = await MealPlan.findOneAndUpdate({ _id: req.params.id, nutritionist: req.user._id }, req.body, { new: true, runValidators: true });
     if (!plan) return res.status(404).json({ error: 'Plan not found' });
+    
+    const eng = await Engagement.findById(plan.engagement);
+    if (eng) {
+      await createNotification(eng.client, 'meal_plan_assigned', `Your nutritionist updated your meal plan for week ${plan.weekNumber}`, `/engagements/${plan.engagement}`);
+    }
+
     res.json({ plan });
   } catch (err) {
     res.status(500).json({ error: err.message });
